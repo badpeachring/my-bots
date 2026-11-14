@@ -4,19 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Offline Mind — Custom Bots</title>
+  <link rel="manifest" href="manifest.json?v=1">
+  <meta name="theme-color" content="#020617">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="knowledge.js?v=1"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 h-screen flex flex-col overflow-hidden">
+<body class="bg-slate-950 text-slate-100 h-dvh flex flex-col overflow-hidden">
   <!-- Header -->
   <header class="px-3 py-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between shrink-0">
     <div class="flex items-center space-x-1.5">
-      <select id="botSelect" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-bold text-white max-w-[130px]"></select>
+      <select id="botSelect" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-bold text-white max-w-[125px]"></select>
       <button id="newBotBtn" class="px-2 py-1.5 bg-sky-500 text-slate-950 rounded-lg text-xs font-bold">+ Bot</button>
     </div>
     <div class="flex items-center space-x-1.5">
       <button id="mindBtn" class="px-2.5 py-1.5 bg-violet-500/20 border border-violet-500/40 text-violet-300 rounded-lg text-xs font-bold">👁 Inside</button>
       <button id="brainBtn" class="px-2.5 py-1.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 rounded-lg text-xs font-bold">🧠 Feed</button>
-      <button id="apiBtn" class="px-2 py-1.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg text-xs font-bold">⚙</button>
+      <button id="apiBtn" class="px-2.5 py-1.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg text-xs font-bold">⚙</button>
     </div>
   </header>
 
@@ -25,7 +28,7 @@
 
   <!-- Input Bar -->
   <form id="chatForm" class="p-2.5 bg-slate-900 border-t border-slate-800 flex items-center space-x-2 shrink-0">
-    <input id="msgInput" type="text" placeholder="Talk to your bot..." autocomplete="off" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-sky-400">
+    <input id="msgInput" type="text" placeholder="Message your bot..." autocomplete="off" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-sky-400">
     <button type="submit" id="sendBtn" class="px-4 py-2.5 bg-sky-500 text-slate-950 rounded-xl text-sm font-bold">Send</button>
   </form>
 
@@ -33,23 +36,23 @@
   <div id="mindModal" class="fixed inset-0 z-40 bg-black/85 hidden flex items-center justify-center p-3">
     <div class="w-full max-w-md bg-slate-900 border border-violet-500/40 rounded-2xl p-4 space-y-3 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center">
-        <h2 class="text-sm font-bold text-violet-300">👁 Inside Bot's Head & Private Notes</h2>
+        <h2 class="text-sm font-bold text-violet-300">👁 Inside Bot's Head & Harvested Data</h2>
         <button onclick="document.getElementById('mindModal').classList.add('hidden')" class="text-slate-400 px-2">✕</button>
       </div>
       <div>
-        <label class="text-[11px] font-bold text-amber-300 block mb-1">Latest Hidden Thoughts (Why it replied that way)</label>
-        <div id="lastThoughtView" class="bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-amber-100/90 whitespace-pre-wrap max-h-36 overflow-y-auto">No thoughts recorded yet. Send a message first.</div>
+        <label class="text-[11px] font-bold text-amber-300 block mb-1">Latest Hidden Thoughts</label>
+        <div id="lastThoughtView" class="bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-amber-100/90 whitespace-pre-wrap max-h-36 overflow-y-auto">No thoughts recorded yet.</div>
       </div>
       <div>
-        <label class="text-[11px] font-bold text-sky-300 block mb-1">Fed Knowledge Pulled on Last Turn</label>
-        <div id="lastContextView" class="bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-[11px] text-slate-400 whitespace-pre-wrap max-h-28 overflow-y-auto">None triggered yet.</div>
+        <label class="text-[11px] font-bold text-sky-300 block mb-1">Knowledge Harvested on Last Turn (Shared + Bot)</label>
+        <div id="lastContextView" class="bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-[11px] text-slate-400 whitespace-pre-wrap max-h-32 overflow-y-auto">None triggered yet.</div>
       </div>
       <div>
         <div class="flex justify-between items-center mb-1">
-          <label class="text-[11px] font-bold text-emerald-400">Bot's Self-Updating Notebook (Editable)</label>
+          <label class="text-[11px] font-bold text-emerald-400">Bot's Self-Updating Notebook</label>
           <span class="text-[10px] text-slate-400">Auto-updates as you chat</span>
         </div>
-        <textarea id="botNotesInput" rows="5" placeholder="The bot will write its own notes about you and your chats here..." class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs text-emerald-200"></textarea>
+        <textarea id="botNotesInput" rows="5" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs text-emerald-200"></textarea>
       </div>
       <button id="saveNotesBtn" type="button" class="w-full py-2 bg-violet-500 text-slate-950 rounded-lg text-xs font-bold">Save Bot's Notes</button>
     </div>
@@ -59,22 +62,26 @@
   <div id="brainModal" class="fixed inset-0 z-40 bg-black/85 hidden flex items-center justify-center p-3">
     <div class="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-3 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center">
-        <h2 class="text-sm font-bold text-white">🧠 Persona & Fed Knowledge</h2>
+        <h2 class="text-sm font-bold text-white">🧠 Persona & Knowledge Bank</h2>
         <button onclick="document.getElementById('brainModal').classList.add('hidden')" class="text-slate-400 px-2">✕</button>
       </div>
       <input id="botNameInput" type="text" placeholder="Bot Name" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
+      <label class="flex items-center space-x-2 text-xs text-slate-300 bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg">
+        <input id="useMasterCheck" type="checkbox" checked class="accent-emerald-400">
+        <span>Harvest from Shared <code class="text-emerald-400">knowledge.js</code> Database (<span id="masterCountSpan">0</span> docs)</span>
+      </label>
       <div>
         <label class="text-[11px] font-bold text-sky-400 block mb-1">Personality & Voice Rules</label>
         <textarea id="botPersonaInput" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200"></textarea>
       </div>
       <div>
         <div class="flex justify-between items-center mb-1">
-          <label class="text-[11px] font-bold text-emerald-400">Fed Knowledge / Lore / Documents</label>
+          <label class="text-[11px] font-bold text-emerald-400">Bot-Specific Notes / Uploaded Files</label>
           <label class="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded text-[10px] font-bold cursor-pointer">
             📄 Upload File<input id="feedFileInput" type="file" accept=".txt,.md,.json,.csv" class="hidden">
           </label>
         </div>
-        <textarea id="botKnowledgeInput" rows="6" placeholder="Paste facts, lore, manuals, or upload .txt/.md files..." class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200"></textarea>
+        <textarea id="botKnowledgeInput" rows="5" placeholder="Paste bot-specific info or upload .txt/.md files..." class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200"></textarea>
       </div>
       <div class="flex space-x-2">
         <button id="clearChatBtn" type="button" class="px-3 py-2 bg-slate-800 text-slate-300 rounded-lg text-xs font-bold">Clear Chat</button>
@@ -84,17 +91,20 @@
     </div>
   </div>
 
-  <!-- LOCAL OLLAMA / API SETTINGS MODAL -->
+  <!-- ENGINE CONNECTION MODAL (OFFLINE TERMUX OR ONLINE OPENROUTER) -->
   <div id="apiModal" class="fixed inset-0 z-40 bg-black/85 hidden flex items-center justify-center p-3">
     <div class="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-3">
       <div class="flex justify-between items-center">
-        <h2 class="text-sm font-bold text-white">⚙ Local Engine Connection</h2>
+        <h2 class="text-sm font-bold text-white">⚙ Engine Connection</h2>
         <button onclick="document.getElementById('apiModal').classList.add('hidden')" class="text-slate-400 px-2">✕</button>
       </div>
-      <p class="text-[11px] text-slate-400">Pre-configured for offline Termux Ollama on your phone.</p>
+      <div class="flex space-x-2">
+        <button type="button" id="presetLocalBtn" class="flex-1 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-[11px] font-bold text-emerald-300">📱 Offline Termux</button>
+        <button type="button" id="presetCloudBtn" class="flex-1 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-[11px] font-bold text-sky-300">⚡ Online 70B (OpenRouter)</button>
+      </div>
       <input id="apiUrlInput" type="text" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
-      <input id="apiModelInput" type="text" placeholder="dolphin-llama3" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
-      <input id="apiKeyInput" type="password" placeholder="ollama" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
+      <input id="apiModelInput" type="text" placeholder="Model ID" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
+      <input id="apiKeyInput" type="password" placeholder="API Key (or 'ollama' for offline)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
       <button id="saveApiBtn" type="button" class="w-full py-2.5 bg-sky-500 text-slate-950 rounded-lg text-xs font-bold">Save Connection</button>
     </div>
   </div>
@@ -107,27 +117,45 @@
       bots: [{
         id: "bot1",
         name: "Vex",
+        useMaster: true,
         persona: defaultPersona,
         knowledge: "",
-        notes: "- User just set up this offline system on their phone.",
+        notes: "- User just wired up the shared knowledge database.",
         lastThought: "Waiting for the first message.",
         lastContext: "None yet.",
-        messages: [{ role: "assistant", content: "Offline engine is wired up. Tap 🧠 Feed to give me docs or 👁 Inside anytime to read my thoughts and notes." }]
+        messages: [{ role: "assistant", content: "Input bar is locked in and connected to knowledge.js. Tap 🧠 Feed to customize me or send a message below." }]
       }]
     };
 
     const save = () => localStorage.setItem("offlineMindV1", JSON.stringify(state));
     const getBot = () => state.bots.find(b => b.id === state.activeId) || state.bots[0];
 
-    function retrieveChunks(knowledge, query) {
-      if (!knowledge || !knowledge.trim()) return "";
-      const chunks = knowledge.split(/\n{2,}|(?=\n#)/).map(s => s.trim()).filter(Boolean);
-      if (chunks.length <= 4) return knowledge.slice(0, 4500);
+    function harvestKnowledge(bot, query) {
+      let pool = [];
+      if (bot.useMaster !== false && Array.isArray(window.MASTER_KNOWLEDGE)) {
+        window.MASTER_KNOWLEDGE.forEach(doc => {
+          if (!doc || !doc.content) return;
+          doc.content.split(/\n{2,}|(?=\n#)/).forEach(part => {
+            const clean = part.trim();
+            if (clean) pool.push(`[Shared: ${doc.title || "Doc"}]\n${clean}`);
+          });
+        });
+      }
+      if (bot.knowledge && bot.knowledge.trim()) {
+        bot.knowledge.split(/\n{2,}|(?=\n#)/).forEach(part => {
+          const clean = part.trim();
+          if (clean) pool.push(`[Bot Brain]\n${clean}`);
+        });
+      }
+      if (!pool.length) return "";
       const words = query.toLowerCase().split(/\W+/).filter(w => w.length > 2);
-      return chunks.map(c => ({
-        c,
-        score: words.reduce((acc, w) => acc + (c.toLowerCase().includes(w) ? 1 : 0), 0)
-      })).sort((a, b) => b.score - a.score).slice(0, 4).map(x => x.c).join("\n\n").slice(0, 4500);
+      const ranked = pool.map(chunk => {
+        const lc = chunk.toLowerCase();
+        const score = words.reduce((acc, w) => acc + (lc.includes(w) ? 1 : 0), 0);
+        return { chunk, score };
+      }).sort((a, b) => b.score - a.score);
+
+      return ranked.slice(0, 6).map(x => x.chunk).join("\n\n").slice(0, 8000);
     }
 
     function render() {
@@ -154,7 +182,7 @@
     document.getElementById("botSelect").onchange = (e) => { state.activeId = e.target.value; save(); render(); };
     document.getElementById("newBotBtn").onclick = () => {
       const id = "bot_" + Date.now();
-      state.bots.push({ id, name: "New Bot", persona: defaultPersona, knowledge: "", notes: "", lastThought: "", lastContext: "", messages: [{ role: "assistant", content: "Ready. Open 🧠 Feed to customize me." }] });
+      state.bots.push({ id, name: "New Bot", useMaster: true, persona: defaultPersona, knowledge: "", notes: "", lastThought: "", lastContext: "", messages: [{ role: "assistant", content: "Ready. Open 🧠 Feed to customize me." }] });
       state.activeId = id; save(); render(); document.getElementById("brainBtn").click();
     };
 
@@ -173,6 +201,8 @@
     document.getElementById("brainBtn").onclick = () => {
       const b = getBot();
       document.getElementById("botNameInput").value = b.name;
+      document.getElementById("useMasterCheck").checked = b.useMaster !== false;
+      document.getElementById("masterCountSpan").textContent = Array.isArray(window.MASTER_KNOWLEDGE) ? window.MASTER_KNOWLEDGE.length : 0;
       document.getElementById("botPersonaInput").value = b.persona;
       document.getElementById("botKnowledgeInput").value = b.knowledge;
       document.getElementById("brainModal").classList.remove("hidden");
@@ -189,6 +219,7 @@
     document.getElementById("saveBrainBtn").onclick = () => {
       const b = getBot();
       b.name = document.getElementById("botNameInput").value.trim() || "Bot";
+      b.useMaster = document.getElementById("useMasterCheck").checked;
       b.persona = document.getElementById("botPersonaInput").value.trim() || defaultPersona;
       b.knowledge = document.getElementById("botKnowledgeInput").value;
       save(); render(); document.getElementById("brainModal").classList.add("hidden");
@@ -207,6 +238,16 @@
       document.getElementById("apiKeyInput").value = state.api.key;
       document.getElementById("apiModal").classList.remove("hidden");
     };
+    document.getElementById("presetLocalBtn").onclick = () => {
+      document.getElementById("apiUrlInput").value = "http://localhost:11434/v1/chat/completions";
+      document.getElementById("apiModelInput").value = "dolphin-llama3";
+      document.getElementById("apiKeyInput").value = "ollama";
+    };
+    document.getElementById("presetCloudBtn").onclick = () => {
+      document.getElementById("apiUrlInput").value = "https://openrouter.ai/api/v1/chat/completions";
+      document.getElementById("apiModelInput").value = "nousresearch/hermes-3-llama-3.1-70b";
+      document.getElementById("apiKeyInput").value = "";
+    };
     document.getElementById("saveApiBtn").onclick = () => {
       state.api.url = document.getElementById("apiUrlInput").value.trim();
       state.api.model = document.getElementById("apiModelInput").value.trim();
@@ -222,15 +263,15 @@
       bot.messages.push({ role: "user", content: text });
       inp.value = ""; save(); render();
 
-      const matchedDocs = retrieveChunks(bot.knowledge, text);
-      bot.lastContext = matchedDocs || "No matching fed documents for this turn.";
+      const matchedDocs = harvestKnowledge(bot, text);
+      bot.lastContext = matchedDocs || "No matching documents found for this turn.";
 
       const sysPrompt = `${bot.persona}
 
 [Your Private Notebook About User & Ongoing Context]:
 ${bot.notes || "(Empty)"}
 
-${matchedDocs ? `[Fed Knowledge Base]:\n${matchedDocs}\n` : ""}
+${matchedDocs ? `[Harvested Knowledge Database]:\n${matchedDocs}\n` : ""}
 CRITICAL OUTPUT FORMAT:
 Always format your response using these exact XML tags:
 <thought>Your honest internal reasoning: what the user really means, which facts/notes apply, and how you want to respond.</thought>
@@ -255,7 +296,7 @@ Always format your response using these exact XML tags:
 
         const thought = thoughtMatch ? thoughtMatch[1].trim() : "Direct response (model skipped <thought> tag).";
         const newNote = noteMatch ? noteMatch[1].trim() : "";
-        const reply = replyMatch ? replyMatch[1].trim() : raw.replace(/<\/?(thought|note|reply)>/gi, "").trim() || "No response from Ollama—check Termux.";
+        const reply = replyMatch ? replyMatch[1].trim() : raw.replace(/<\/?(thought|note|reply)>/gi, "").trim() || "No response received—check your engine settings.";
 
         bot.lastThought = thought;
         if (newNote && newNote.toUpperCase() !== "NONE") {
@@ -263,7 +304,7 @@ Always format your response using these exact XML tags:
         }
         bot.messages[bot.messages.length - 1] = { role: "assistant", content: reply, thought };
       } catch (err) {
-        bot.messages[bot.messages.length - 1] = { role: "assistant", content: "Could not reach Ollama. Open Termux and make sure `OLLAMA_ORIGINS=\"*\" ollama serve &` is running." };
+        bot.messages[bot.messages.length - 1] = { role: "assistant", content: "Connection error: " + err.message + " (If offline, make sure Ollama is running in Termux.)" };
       }
       save(); render();
     };
