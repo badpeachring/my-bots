@@ -105,7 +105,7 @@
       </div>
       <div class="grid grid-cols-3 gap-1.5">
         <button type="button" id="presetLocalBtn" class="py-1.5 px-1 bg-slate-800 border border-slate-700 rounded-lg text-[10px] font-bold text-emerald-300">📱 Offline Termux</button>
-        <button type="button" id="presetFreeCloudBtn" class="py-1.5 px-1 bg-slate-800 border border-slate-700 rounded-lg text-[10px] font-bold text-amber-300">🆓 Online Free 24B</button>
+        <button type="button" id="presetFreeCloudBtn" class="py-1.5 px-1 bg-slate-800 border border-slate-700 rounded-lg text-[10px] font-bold text-amber-300">🆓 Online Free</button>
         <button type="button" id="presetCloudBtn" class="py-1.5 px-1 bg-slate-800 border border-slate-700 rounded-lg text-[10px] font-bold text-sky-300">⚡ Online 70B</button>
       </div>
       <input id="apiUrlInput" type="text" placeholder="Endpoint URL" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
@@ -134,11 +134,11 @@
       notes: "",
       lastThought: "Waiting for the first message.",
       lastContext: "None yet.",
-      messages: [{ role: "assistant", content: "Modular library is wired up. Send a message below or tap ⚙ to pick Offline Termux / Online OpenRouter." }]
+      messages: [{ role: "assistant", content: "Mind reader and modular library are locked in. Send a message below to see inside my thoughts." }]
     });
 
     let state = JSON.parse(localStorage.getItem("offlineMindV1") || "null") || {
-      api: { url: "http://localhost:11434/v1/chat/completions", key: "ollama", model: "dolphin-llama3" },
+      api: { url: "https://openrouter.ai/api/v1/chat/completions", key: "", model: "openrouter/free" },
       activeId: null,
       bots: []
     };
@@ -266,13 +266,11 @@
     };
     document.getElementById("presetFreeCloudBtn").onclick = () => {
       document.getElementById("apiUrlInput").value = "https://openrouter.ai/api/v1/chat/completions";
-      document.getElementById("apiModelInput").value = "cognitivecomputations/dolphin-mistral-24b-venice-edition:free";
-      document.getElementById("apiKeyInput").value = "";
+      document.getElementById("apiModelInput").value = "openrouter/free";
     };
     document.getElementById("presetCloudBtn").onclick = () => {
       document.getElementById("apiUrlInput").value = "https://openrouter.ai/api/v1/chat/completions";
       document.getElementById("apiModelInput").value = "nousresearch/hermes-3-llama-3.1-70b";
-      document.getElementById("apiKeyInput").value = "";
     };
     document.getElementById("saveApiBtn").onclick = () => {
       state.api.url = document.getElementById("apiUrlInput").value.trim();
@@ -299,12 +297,16 @@ ${bot.notes || "(Empty)"}
 
 ${matchedDocs ? `[Harvested Knowledge Packs]:\n${matchedDocs}\n` : ""}
 CRITICAL OUTPUT FORMAT:
-Always format your response using these exact XML tags:
+Always format your entire response using these exact three XML tags:
 <thought>Your honest internal reasoning: what the user really means, which facts/notes apply, and how you want to respond.</thought>
 <note>If the user shared a new fact, preference, or detail worth remembering long-term, write ONE short bullet point here; otherwise write NONE.</note>
 <reply>Your actual spoken reply to the user.</reply>`;
 
       const history = bot.messages.slice(-14).map(m => ({ role: m.role, content: m.content }));
+      history.push({
+        role: "system",
+        content: "MANDATORY: Begin your output with <thought>your internal reasoning</thought>, then <note>new user fact or NONE</note>, then <reply>your spoken response</reply>."
+      });
       bot.messages.push({ role: "assistant", content: "Thinking..." });
       render();
 
@@ -323,14 +325,18 @@ Always format your response using these exact XML tags:
         if (!res.ok || data.error) {
           throw new Error(data.error?.message || `HTTP ${res.status} (${res.statusText})`);
         }
-        const raw = data.choices?.[0]?.message?.content || "";
-        const thoughtMatch = raw.match(/<thought>([\s\S]*?)<\/thought>/i);
+        const msgObj = data.choices?.[0]?.message || {};
+        const raw = msgObj.content || "";
+        const nativeReasoning = msgObj.reasoning || msgObj.reasoning_content || "";
+
+        const thoughtMatch = raw.match(/<(?:thought|think)>([\s\S]*?)<\/(?:thought|think)>/i);
         const noteMatch = raw.match(/<note>([\s\S]*?)<\/note>/i);
         const replyMatch = raw.match(/<reply>([\s\S]*?)<\/reply>/i);
 
-        const thought = thoughtMatch ? thoughtMatch[1].trim() : "Direct response (model skipped <thought> tag).";
+        const thought = (thoughtMatch ? thoughtMatch[1].trim() : nativeReasoning.trim()) || "Model answered directly without outputting a thought block.";
         const newNote = noteMatch ? noteMatch[1].trim() : "";
-        const reply = replyMatch ? replyMatch[1].trim() : raw.replace(/<\/?(thought|note|reply)>/gi, "").trim() || "Empty response from model.";
+        let reply = replyMatch ? replyMatch[1].trim() : raw.replace(/<(?:thought|think|note|reply)>[\s\S]*?<\/(?:thought|think|note|reply)>/gi, "").replace(/<\/?(?:thought|think|note|reply)>/gi, "").trim();
+        if (!reply) reply = "Empty response from model.";
 
         bot.lastThought = thought;
         if (newNote && newNote.toUpperCase() !== "NONE") {
@@ -340,7 +346,7 @@ Always format your response using these exact XML tags:
       } catch (err) {
         bot.messages[bot.messages.length - 1] = {
           role: "assistant",
-          content: `Engine Error: ${err.message}\n\n• Offline Termux fix: run\npkill ollama && OLLAMA_ORIGINS="*" ollama serve &\n• Online OpenRouter fix: tap ⚙, pick "🆓 Online Free 24B", and paste your sk-or-... key.`
+          content: `Engine Error: ${err.message}`
         };
       }
       save(); render();
