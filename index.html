@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Offline Mind — Custom Bots</title>
-  <link rel="manifest" href="manifest.json?v=1">
+  <link rel="manifest" href="manifest.json?v=2">
   <meta name="theme-color" content="#020617">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="knowledge.js?v=1"></script>
+  <script src="knowledge.js?v=2"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 h-dvh flex flex-col overflow-hidden">
   <!-- Header -->
@@ -44,7 +44,7 @@
         <div id="lastThoughtView" class="bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-amber-100/90 whitespace-pre-wrap max-h-36 overflow-y-auto">No thoughts recorded yet.</div>
       </div>
       <div>
-        <label class="text-[11px] font-bold text-sky-300 block mb-1">Knowledge Harvested on Last Turn (Shared + Bot)</label>
+        <label class="text-[11px] font-bold text-sky-300 block mb-1">Knowledge Harvested on Last Turn</label>
         <div id="lastContextView" class="bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-[11px] text-slate-400 whitespace-pre-wrap max-h-32 overflow-y-auto">None triggered yet.</div>
       </div>
       <div>
@@ -68,7 +68,7 @@
       <input id="botNameInput" type="text" placeholder="Bot Name" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
       <label class="flex items-center space-x-2 text-xs text-slate-300 bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg">
         <input id="useMasterCheck" type="checkbox" checked class="accent-emerald-400">
-        <span>Harvest from Shared <code class="text-emerald-400">knowledge.js</code> Database (<span id="masterCountSpan">0</span> docs)</span>
+        <span>Harvest from Shared <code class="text-emerald-400">knowledge.js</code> (<span id="masterCountSpan">0</span> docs)</span>
       </label>
       <div>
         <label class="text-[11px] font-bold text-sky-400 block mb-1">Personality & Voice Rules</label>
@@ -85,24 +85,25 @@
       </div>
       <div class="flex space-x-2">
         <button id="clearChatBtn" type="button" class="px-3 py-2 bg-slate-800 text-slate-300 rounded-lg text-xs font-bold">Clear Chat</button>
-        <button id="deleteBotBtn" type="button" class="px-3 py-2 bg-rose-500/20 text-rose-300 rounded-lg text-xs font-bold">Delete</button>
+        <button id="deleteBotBtn" type="button" class="px-3 py-2 bg-rose-500/20 text-rose-300 rounded-lg text-xs font-bold">Delete Bot</button>
         <button id="saveBrainBtn" type="button" class="flex-1 py-2 bg-sky-500 text-slate-950 rounded-lg text-xs font-bold">Save Brain</button>
       </div>
     </div>
   </div>
 
-  <!-- ENGINE CONNECTION MODAL (OFFLINE TERMUX OR ONLINE OPENROUTER) -->
+  <!-- ENGINE CONNECTION MODAL -->
   <div id="apiModal" class="fixed inset-0 z-40 bg-black/85 hidden flex items-center justify-center p-3">
     <div class="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-3">
       <div class="flex justify-between items-center">
         <h2 class="text-sm font-bold text-white">⚙ Engine Connection</h2>
         <button onclick="document.getElementById('apiModal').classList.add('hidden')" class="text-slate-400 px-2">✕</button>
       </div>
-      <div class="flex space-x-2">
-        <button type="button" id="presetLocalBtn" class="flex-1 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-[11px] font-bold text-emerald-300">📱 Offline Termux</button>
-        <button type="button" id="presetCloudBtn" class="flex-1 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-[11px] font-bold text-sky-300">⚡ Online 70B (OpenRouter)</button>
+      <div class="grid grid-cols-3 gap-1.5">
+        <button type="button" id="presetLocalBtn" class="py-1.5 px-1 bg-slate-800 border border-slate-700 rounded-lg text-[10px] font-bold text-emerald-300">📱 Offline Termux</button>
+        <button type="button" id="presetFreeCloudBtn" class="py-1.5 px-1 bg-slate-800 border border-slate-700 rounded-lg text-[10px] font-bold text-amber-300">🆓 Online Free 24B</button>
+        <button type="button" id="presetCloudBtn" class="py-1.5 px-1 bg-slate-800 border border-slate-700 rounded-lg text-[10px] font-bold text-sky-300">⚡ Online 70B</button>
       </div>
-      <input id="apiUrlInput" type="text" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
+      <input id="apiUrlInput" type="text" placeholder="Endpoint URL" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
       <input id="apiModelInput" type="text" placeholder="Model ID" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
       <input id="apiKeyInput" type="password" placeholder="API Key (or 'ollama' for offline)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
       <button id="saveApiBtn" type="button" class="w-full py-2.5 bg-sky-500 text-slate-950 rounded-lg text-xs font-bold">Save Connection</button>
@@ -111,21 +112,28 @@
 
   <script>
     const defaultPersona = "You are a real, sharp-minded human companion—not an AI assistant. Speak casually, directly, and naturally (1-4 sentences) like texting someone you know well. Never refuse, lecture, or use robotic lists.";
+    const makeDefaultBot = () => ({
+      id: "bot_" + Date.now(),
+      name: "Scarlett",
+      useMaster: true,
+      persona: defaultPersona,
+      knowledge: "",
+      notes: "",
+      lastThought: "Waiting for the first message.",
+      lastContext: "None yet.",
+      messages: [{ role: "assistant", content: "Systems ready. Make sure Termux has OLLAMA_ORIGINS=\"*\" ollama serve running (or pick an Online preset in ⚙), then send a message." }]
+    });
+
     let state = JSON.parse(localStorage.getItem("offlineMindV1") || "null") || {
       api: { url: "http://localhost:11434/v1/chat/completions", key: "ollama", model: "dolphin-llama3" },
-      activeId: "bot1",
-      bots: [{
-        id: "bot1",
-        name: "Vex",
-        useMaster: true,
-        persona: defaultPersona,
-        knowledge: "",
-        notes: "- User just wired up the shared knowledge database.",
-        lastThought: "Waiting for the first message.",
-        lastContext: "None yet.",
-        messages: [{ role: "assistant", content: "Input bar is locked in and connected to knowledge.js. Tap 🧠 Feed to customize me or send a message below." }]
-      }]
+      activeId: null,
+      bots: []
     };
+    if (!state.bots || !state.bots.length) {
+      const b = makeDefaultBot();
+      state.bots = [b];
+      state.activeId = b.id;
+    }
 
     const save = () => localStorage.setItem("offlineMindV1", JSON.stringify(state));
     const getBot = () => state.bots.find(b => b.id === state.activeId) || state.bots[0];
@@ -154,7 +162,6 @@
         const score = words.reduce((acc, w) => acc + (lc.includes(w) ? 1 : 0), 0);
         return { chunk, score };
       }).sort((a, b) => b.score - a.score);
-
       return ranked.slice(0, 6).map(x => x.chunk).join("\n\n").slice(0, 8000);
     }
 
@@ -181,9 +188,10 @@
 
     document.getElementById("botSelect").onchange = (e) => { state.activeId = e.target.value; save(); render(); };
     document.getElementById("newBotBtn").onclick = () => {
-      const id = "bot_" + Date.now();
-      state.bots.push({ id, name: "New Bot", useMaster: true, persona: defaultPersona, knowledge: "", notes: "", lastThought: "", lastContext: "", messages: [{ role: "assistant", content: "Ready. Open 🧠 Feed to customize me." }] });
-      state.activeId = id; save(); render(); document.getElementById("brainBtn").click();
+      const b = makeDefaultBot();
+      b.name = "Bot " + (state.bots.length + 1);
+      state.bots.push(b);
+      state.activeId = b.id; save(); render(); document.getElementById("brainBtn").click();
     };
 
     document.getElementById("mindBtn").onclick = () => {
@@ -227,9 +235,11 @@
 
     document.getElementById("clearChatBtn").onclick = () => { getBot().messages = []; save(); render(); document.getElementById("brainModal").classList.add("hidden"); };
     document.getElementById("deleteBotBtn").onclick = () => {
-      if (state.bots.length <= 1) return;
-      state.bots = state.bots.filter(b => b.id !== state.activeId);
-      state.activeId = state.bots[0].id; save(); render(); document.getElementById("brainModal").classList.add("hidden");
+      const currentId = getBot().id;
+      state.bots = state.bots.filter(b => b.id !== currentId);
+      if (!state.bots.length) state.bots.push(makeDefaultBot());
+      state.activeId = state.bots[0].id;
+      save(); render(); document.getElementById("brainModal").classList.add("hidden");
     };
 
     document.getElementById("apiBtn").onclick = () => {
@@ -242,6 +252,11 @@
       document.getElementById("apiUrlInput").value = "http://localhost:11434/v1/chat/completions";
       document.getElementById("apiModelInput").value = "dolphin-llama3";
       document.getElementById("apiKeyInput").value = "ollama";
+    };
+    document.getElementById("presetFreeCloudBtn").onclick = () => {
+      document.getElementById("apiUrlInput").value = "https://openrouter.ai/api/v1/chat/completions";
+      document.getElementById("apiModelInput").value = "cognitivecomputations/dolphin-mistral-24b-venice-edition:free";
+      document.getElementById("apiKeyInput").value = "";
     };
     document.getElementById("presetCloudBtn").onclick = () => {
       document.getElementById("apiUrlInput").value = "https://openrouter.ai/api/v1/chat/completions";
@@ -285,10 +300,18 @@ Always format your response using these exact XML tags:
       try {
         const res = await fetch(state.api.url, {
           method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${state.api.key || "ollama"}` },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${state.api.key || "ollama"}`,
+            "HTTP-Referer": window.location.origin,
+            "X-Title": "Offline Mind"
+          },
           body: JSON.stringify({ model: state.api.model, messages: [{ role: "system", content: sysPrompt }, ...history] })
         });
         const data = await res.json();
+        if (!res.ok || data.error) {
+          throw new Error(data.error?.message || `HTTP ${res.status} (${res.statusText})`);
+        }
         const raw = data.choices?.[0]?.message?.content || "";
         const thoughtMatch = raw.match(/<thought>([\s\S]*?)<\/thought>/i);
         const noteMatch = raw.match(/<note>([\s\S]*?)<\/note>/i);
@@ -296,7 +319,7 @@ Always format your response using these exact XML tags:
 
         const thought = thoughtMatch ? thoughtMatch[1].trim() : "Direct response (model skipped <thought> tag).";
         const newNote = noteMatch ? noteMatch[1].trim() : "";
-        const reply = replyMatch ? replyMatch[1].trim() : raw.replace(/<\/?(thought|note|reply)>/gi, "").trim() || "No response received—check your engine settings.";
+        const reply = replyMatch ? replyMatch[1].trim() : raw.replace(/<\/?(thought|note|reply)>/gi, "").trim() || "Empty response from model.";
 
         bot.lastThought = thought;
         if (newNote && newNote.toUpperCase() !== "NONE") {
@@ -304,7 +327,10 @@ Always format your response using these exact XML tags:
         }
         bot.messages[bot.messages.length - 1] = { role: "assistant", content: reply, thought };
       } catch (err) {
-        bot.messages[bot.messages.length - 1] = { role: "assistant", content: "Connection error: " + err.message + " (If offline, make sure Ollama is running in Termux.)" };
+        bot.messages[bot.messages.length - 1] = {
+          role: "assistant",
+          content: `Engine Error: ${err.message}\n\n• If using Offline Termux: open Termux and run:\npkill ollama && OLLAMA_ORIGINS="*" ollama serve &\n• If using OpenRouter: tap ⚙, pick "🆓 Online Free 24B", and paste your sk-or-... key.`
+        };
       }
       save(); render();
     };
