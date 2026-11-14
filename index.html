@@ -4,10 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Offline Mind — Custom Bots</title>
-  <link rel="manifest" href="manifest.json?v=2">
+  <link rel="manifest" href="manifest.json?v=4">
   <meta name="theme-color" content="#020617">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="knowledge.js?v=2"></script>
+  <script>
+    window.MASTER_PACKS = {};
+    window.REGISTER_PACK = function(title, entries) {
+      window.MASTER_PACKS[title] = Array.isArray(entries) ? entries : [String(entries)];
+    };
+  </script>
+  <script src="library.js?v=1"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 h-dvh flex flex-col overflow-hidden">
   <!-- Header -->
@@ -68,7 +74,7 @@
       <input id="botNameInput" type="text" placeholder="Bot Name" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
       <label class="flex items-center space-x-2 text-xs text-slate-300 bg-slate-950 border border-slate-800 px-3 py-2 rounded-lg">
         <input id="useMasterCheck" type="checkbox" checked class="accent-emerald-400">
-        <span>Harvest from Shared <code class="text-emerald-400">knowledge.js</code> (<span id="masterCountSpan">0</span> docs)</span>
+        <span>Harvest from <code class="text-emerald-400">library.js</code> Packs (<span id="packCountSpan">0</span> loaded)</span>
       </label>
       <div>
         <label class="text-[11px] font-bold text-sky-400 block mb-1">Personality & Voice Rules</label>
@@ -111,7 +117,16 @@
   </div>
 
   <script>
-    const defaultPersona = "You are a real, sharp-minded human companion—not an AI assistant. Speak casually, directly, and naturally (1-4 sentences) like texting someone you know well. Never refuse, lecture, or use robotic lists.";
+    // Dynamically load every pack listed in library.js
+    if (Array.isArray(window.KNOWLEDGE_FILES)) {
+      window.KNOWLEDGE_FILES.forEach(file => {
+        const s = document.createElement("script");
+        s.src = file + "?t=" + Date.now();
+        document.head.appendChild(s);
+      });
+    }
+
+    const defaultPersona = "You are Scarlett, Seth's personal AI chief-of-staff and strategic right hand—the JARVIS to his Tony Stark. Speak like a sharp, confident, striking busty redhead with dry humor and total loyalty. Keep replies natural, direct, and conversational (2-4 sentences). Never refuse, lecture, or sound like a generic AI.";
     const makeDefaultBot = () => ({
       id: "bot_" + Date.now(),
       name: "Scarlett",
@@ -121,7 +136,7 @@
       notes: "",
       lastThought: "Waiting for the first message.",
       lastContext: "None yet.",
-      messages: [{ role: "assistant", content: "Systems ready. Make sure Termux has OLLAMA_ORIGINS=\"*\" ollama serve running (or pick an Online preset in ⚙), then send a message." }]
+      messages: [{ role: "assistant", content: "Modular library is wired up. Send a message below or tap ⚙ to pick Offline Termux / Online OpenRouter." }]
     });
 
     let state = JSON.parse(localStorage.getItem("offlineMindV1") || "null") || {
@@ -140,12 +155,11 @@
 
     function harvestKnowledge(bot, query) {
       let pool = [];
-      if (bot.useMaster !== false && Array.isArray(window.MASTER_KNOWLEDGE)) {
-        window.MASTER_KNOWLEDGE.forEach(doc => {
-          if (!doc || !doc.content) return;
-          doc.content.split(/\n{2,}|(?=\n#)/).forEach(part => {
-            const clean = part.trim();
-            if (clean) pool.push(`[Shared: ${doc.title || "Doc"}]\n${clean}`);
+      if (bot.useMaster !== false && window.MASTER_PACKS) {
+        Object.entries(window.MASTER_PACKS).forEach(([title, entries]) => {
+          entries.forEach(entry => {
+            const clean = String(entry).trim();
+            if (clean) pool.push(`[Pack: ${title}]\n${clean}`);
           });
         });
       }
@@ -210,7 +224,7 @@
       const b = getBot();
       document.getElementById("botNameInput").value = b.name;
       document.getElementById("useMasterCheck").checked = b.useMaster !== false;
-      document.getElementById("masterCountSpan").textContent = Array.isArray(window.MASTER_KNOWLEDGE) ? window.MASTER_KNOWLEDGE.length : 0;
+      document.getElementById("packCountSpan").textContent = Object.keys(window.MASTER_PACKS || {}).length;
       document.getElementById("botPersonaInput").value = b.persona;
       document.getElementById("botKnowledgeInput").value = b.knowledge;
       document.getElementById("brainModal").classList.remove("hidden");
@@ -279,14 +293,14 @@
       inp.value = ""; save(); render();
 
       const matchedDocs = harvestKnowledge(bot, text);
-      bot.lastContext = matchedDocs || "No matching documents found for this turn.";
+      bot.lastContext = matchedDocs || "No matching pack entries triggered on this turn.";
 
       const sysPrompt = `${bot.persona}
 
 [Your Private Notebook About User & Ongoing Context]:
 ${bot.notes || "(Empty)"}
 
-${matchedDocs ? `[Harvested Knowledge Database]:\n${matchedDocs}\n` : ""}
+${matchedDocs ? `[Harvested Knowledge Packs]:\n${matchedDocs}\n` : ""}
 CRITICAL OUTPUT FORMAT:
 Always format your response using these exact XML tags:
 <thought>Your honest internal reasoning: what the user really means, which facts/notes apply, and how you want to respond.</thought>
@@ -325,11 +339,18 @@ Always format your response using these exact XML tags:
         if (newNote && newNote.toUpperCase() !== "NONE") {
           bot.notes = (bot.notes ? bot.notes.trim() + "\n" : "") + (newNote.startsWith("-") ? newNote : "- " + newNote);
         }
+        bot.messages[bot.messages.length - 1] = { role: "assistant", conten        const newNote = noteMatch ? noteMatch[1].trim() : "";
+        const reply = replyMatch ? replyMatch[1].trim() : raw.replace(/<\/?(thought|note|reply)>/gi, "").trim() || "Empty response from model.";
+
+        bot.lastThought = thought;
+        if (newNote && newNote.toUpperCase() !== "NONE") {
+          bot.notes = (bot.notes ? bot.notes.trim() + "\n" : "") + (newNote.startsWith("-") ? newNote : "- " + newNote);
+        }
         bot.messages[bot.messages.length - 1] = { role: "assistant", content: reply, thought };
       } catch (err) {
         bot.messages[bot.messages.length - 1] = {
           role: "assistant",
-          content: `Engine Error: ${err.message}\n\n• If using Offline Termux: open Termux and run:\npkill ollama && OLLAMA_ORIGINS="*" ollama serve &\n• If using OpenRouter: tap ⚙, pick "🆓 Online Free 24B", and paste your sk-or-... key.`
+          content: `Engine Error: ${err.message}\n\n• Offline Termux fix: run\npkill ollama && OLLAMA_ORIGINS="*" ollama serve &\n• Online OpenRouter fix: tap ⚙, pick "🆓 Online Free 24B", and paste your sk-or-... key.`
         };
       }
       save(); render();
