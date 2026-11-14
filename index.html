@@ -63,8 +63,7 @@
       <button id="saveNotesBtn" type="button" class="w-full py-2 bg-violet-500 text-slate-950 rounded-lg text-xs font-bold">Save Bot's Notes</button>
     </div>
   </div>
-
-  <!-- FEED KNOWLEDGE & PERSONA MODAL -->
+    <!-- FEED KNOWLEDGE & PERSONA MODAL -->
   <div id="brainModal" class="fixed inset-0 z-40 bg-black/85 hidden flex items-center justify-center p-3">
     <div class="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-3 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center">
@@ -117,7 +116,6 @@
   </div>
 
   <script>
-    // Dynamically load every pack listed in library.js
     if (Array.isArray(window.KNOWLEDGE_FILES)) {
       window.KNOWLEDGE_FILES.forEach(file => {
         const s = document.createElement("script");
@@ -178,8 +176,7 @@
       }).sort((a, b) => b.score - a.score);
       return ranked.slice(0, 6).map(x => x.chunk).join("\n\n").slice(0, 8000);
     }
-
-    function render() {
+        function render() {
       const sel = document.getElementById("botSelect");
       sel.innerHTML = state.bots.map(b => `<option value="${b.id}" ${b.id === state.activeId ? "selected" : ""}>${b.name}</option>`).join("");
       const bot = getBot(), box = document.getElementById("chatBox");
@@ -333,13 +330,6 @@ Always format your response using these exact XML tags:
 
         const thought = thoughtMatch ? thoughtMatch[1].trim() : "Direct response (model skipped <thought> tag).";
         const newNote = noteMatch ? noteMatch[1].trim() : "";
-        const reply = replyMatch ? replyMatch[1].trim() : raw.replace(/<\/?(thought|note|reply)>/gi, "").trim() || "Empty response from model.";
-
-        bot.lastThought = thought;
-        if (newNote && newNote.toUpperCase() !== "NONE") {
-          bot.notes = (bot.notes ? bot.notes.trim() + "\n" : "") + (newNote.startsWith("-") ? newNote : "- " + newNote);
-        }
-        bot.messages[bot.messages.length - 1] = { role: "assistant", conten        const newNote = noteMatch ? noteMatch[1].trim() : "";
         const reply = replyMatch ? replyMatch[1].trim() : raw.replace(/<\/?(thought|note|reply)>/gi, "").trim() || "Empty response from model.";
 
         bot.lastThought = thought;
