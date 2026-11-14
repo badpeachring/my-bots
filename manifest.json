@@ -1,0 +1,17 @@
+{
+  "name": "Offline Mind",
+  "short_name": "Offline Mind",
+  "start_url": "/my-bots/",
+  "scope": "/my-bots/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "icons": [
+    {
+      "src": "https://badpeachring.github.io/Skill-Tree/Screenshot_20261112-193812.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
